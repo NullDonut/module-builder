@@ -129,8 +129,10 @@ jobs:
       - name: Report to Telegram
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          TG_CHAT: ${{ vars.TG_BOTNAME }}
-        if: ${{ env.TG_TOKEN != '' }}
+          # TG_CHAT must be a numeric chat ID or @channelusername. The
+          # TG_BOTNAME fallback keeps older repository variable names working.
+          TG_CHAT: ${{ vars.TG_CHAT_ID || vars.TG_BOTNAME }}
+        if: ${{ env.TG_TOKEN != '' && env.TG_CHAT != '' }}
         run: |
           cd build || { echo "build folder not found"; exit 1; }
 

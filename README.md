@@ -165,6 +165,18 @@ The default template lives in `module/`. A per-app template can be selected with
 `module-template = "path/to/template"`. The builder writes `config` and
 `module.prop` into the template copy, then zips it.
 
+## Notifications
+
+The build workflow can post release links to Telegram. Configure:
+
+- `TG_TOKEN` — repository **secret** containing the bot token.
+- `TG_CHAT_ID` — repository **variable** with a numeric chat ID or
+  `@channelusername`. The bot must be a member/admin of that chat.
+
+`TG_BOTNAME` is still read as a fallback for existing setups, but a bot name is
+**not** a chat ID. There is currently **no Instagram (IG) integration**; only
+Telegram is implemented.
+
 ## Credits
 
 - [revanced-morphe-builder](https://github.com/peternmuller/revanced-morphe-builder)
