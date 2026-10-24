@@ -4,7 +4,7 @@ enable-module-update = true
 # Morphe
 [YouTube-Morphe]
 app-name = "YouTube"
-direct-dlurl = "https://github.com/NullDonut/YTYTM-APK/releases/download/1/com.google.android.youtube_21.23.492-1561177001_minAPI28.arm64-v8a.armeabi-v7a.x86.x86_64.nodpi._apkmirror.com.apk"
+direct-dlurl = "https://github.com/NullDonut/YTYTM-APK/releases/download/1/com.google.android.youtube-21.23.492-all.apk"
 archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.youtube"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
 patches-source = "MorpheApp/morphe-patches"
