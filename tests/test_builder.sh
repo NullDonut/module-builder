@@ -197,6 +197,14 @@ source "${PROJECT_ROOT}/lib/update.sh"
 
 detect_tools
 
+testcase "detect_tools resolves the x86_64 bundled TOML parser"
+x64_toml=$( (MACHINE_ARCH=x86_64; BIN_DIR="${PROJECT_ROOT}/bin"; detect_tools >/dev/null; printf '%s' "${TOML_BIN-}") )
+assert_eq "${PROJECT_ROOT}/bin/toml/tq-x86_64" "$x64_toml"
+
+testcase "detect_tools resolves the arm64 bundled TOML parser"
+arm64_toml=$( (MACHINE_ARCH=aarch64; BIN_DIR="${PROJECT_ROOT}/bin"; detect_tools >/dev/null; printf '%s' "${TOML_BIN-}") )
+assert_eq "${PROJECT_ROOT}/bin/toml/tq-arm64" "$arm64_toml"
+
 # ---------------------------------------------------------------------------
 # Config loading and inheritance
 # ---------------------------------------------------------------------------

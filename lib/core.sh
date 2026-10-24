@@ -193,7 +193,7 @@ get_highest_ver() {
 # ---------------------------------------------------------------------------
 
 detect_tools() {
-	local arch=$MACHINE_ARCH
+	local arch=$MACHINE_ARCH bin_arch
 	case "$arch" in
 	aarch64 | arm64) arch=arm64 ;;
 	armv7* | armv8l) arch=arm ;;
@@ -201,10 +201,26 @@ detect_tools() {
 	x86_64 | amd64) arch=x64 ;;
 	esac
 
-	TOML_BIN="${BIN_DIR}/toml/tq-${arch}"
-	HTMLQ_BIN="${BIN_DIR}/htmlq/htmlq-${arch}"
+	# The bundled binaries use different suffixes: arm/arm64 and x86_64
+	# (not x64). Keep the x64 mapping for tools that may use it.
+	bin_arch=$arch
+	[ "$arch" = x64 ] && bin_arch=x86_64
+
+	TOML_BIN="${BIN_DIR}/toml/tq-${bin_arch}"
+	HTMLQ_BIN="${BIN_DIR}/htmlq/htmlq-${bin_arch}"
 	AAPT2_BIN="${BIN_DIR}/aapt2/aapt2-${arch}"
 	APKSIGNER_JAR="${BIN_DIR}/apksigner.jar"
+
+	# Accept either suffix for locally renamed builds.
+	if [ ! -x "$TOML_BIN" ] && [ -x "${BIN_DIR}/toml/tq-${arch}" ]; then
+		TOML_BIN="${BIN_DIR}/toml/tq-${arch}"
+	fi
+	if [ ! -x "$HTMLQ_BIN" ] && [ -x "${BIN_DIR}/htmlq/htmlq-${arch}" ]; then
+		HTMLQ_BIN="${BIN_DIR}/htmlq/htmlq-${arch}"
+	fi
+	if [ ! -x "$AAPT2_BIN" ] && [ -x "${BIN_DIR}/aapt2/aapt2-${bin_arch}" ]; then
+		AAPT2_BIN="${BIN_DIR}/aapt2/aapt2-${bin_arch}"
+	fi
 
 	# Fall back to binaries on PATH when the bundled one is unavailable.
 	if [ ! -x "$TOML_BIN" ]; then
