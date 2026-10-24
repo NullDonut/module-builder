@@ -403,8 +403,16 @@ build_variant() {
 	*) abort "Invalid build-mode '${build_mode}'" ;;
 	esac
 
-	apk_format=$(config_get_effective "$table" apk-name-format "${APK_NAME_FORMAT:-{app}-{brand}-v{version}-{arch}.apk}")
-	module_format=$(config_get_effective "$table" module-name-format "${MODULE_NAME_FORMAT:-{app}-{brand}-module-v{version}-{arch}.zip}")
+	# Do not put the brace-containing defaults inside "${VAR:-...}": the
+	# first closing brace ends the expansion and corrupts the output name.
+	apk_format=$(config_get_effective "$table" apk-name-format "${APK_NAME_FORMAT:-}")
+	if [ -z "$apk_format" ]; then
+		apk_format='{app}-{brand}-v{version}-{arch}.apk'
+	fi
+	module_format=$(config_get_effective "$table" module-name-format "${MODULE_NAME_FORMAT:-}")
+	if [ -z "$module_format" ]; then
+		module_format='{app}-{brand}-module-v{version}-{arch}.zip'
+	fi
 
 	for mode in "${build_mode_arr[@]}"; do
 		local patcher_args="$p_patcher_args"

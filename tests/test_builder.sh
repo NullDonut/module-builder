@@ -421,6 +421,7 @@ cat >"$SANDBOX/config-module.json" <<'EOF'
   "TestApp": {
     "inherits": "Base",
     "app-name": "Test App",
+    "build-mode": "both",
     "module-name": "Test Module",
     "module-id": "com.example.test",
     "module-description": "A test module",
@@ -513,6 +514,37 @@ bad_extra_out=$(package_module Broken "Broken" com.example.broken 1.0.0 arm64-v8
 	temp/stock.apk temp/patched.apk Morphe temp/patches-1.2.3.jar \
 	temp/cli.jar "" disable '{table}.zip' 2>&1)
 assert_ne "0" "$?"
+
+testcase "build_variant does not mangle output names when global formats are set"
+variant_output=$(
+	(
+		cd "$SANDBOX" || exit 1
+		config_load "$SANDBOX/config-module.json"
+		load_sources
+		BUILD_DIR="build-variant-test"
+		TEMP_DIR="temp-variant-test"
+		BUILD_LOG="build-variant-test.md"
+		APK_NAME_FORMAT='{app}-{brand}-v{version}-{arch}.apk'
+		MODULE_NAME_FORMAT='{app}-{brand}-module-v{version}-{arch}.zip'
+		mkdir -p "$TEMP_DIR" "$BUILD_DIR"
+		printf 'JAR' >"$TEMP_DIR/patches-1.2.3.jar"
+		printf 'CLI' >"$TEMP_DIR/cli.jar"
+		get_prebuilts() { printf '%s\n%s\n' "$TEMP_DIR/patches-1.2.3.jar" "$TEMP_DIR/cli.jar"; }
+		resolve_pkg_name() { printf 'com.example.test'; }
+		patches_list() { printf 'Name: Custom branding\n'; }
+		get_patch_last_supported_ver() { printf '1.0.0'; }
+		download_stock_apk() { printf 'PK' >"$5"; }
+		check_sig() { return 0; }
+		patch_apk() { printf 'PA' >"$2"; }
+		run_hooks() { :; }
+		log() { :; }
+		declare -A spec=([table]=TestApp [arch]=arm64-v8a [label]=TestApp)
+		build_variant "$(declare -p spec)" >/dev/null 2>&1
+		ls -1 "$BUILD_DIR" 2>/dev/null
+	) 2>/dev/null
+)
+assert_contains "test-app-morphe-module-v1.0.0-arm64-v8a.zip" "$variant_output"
+assert_contains "test-app-morphe-v1.0.0-arm64-v8a.apk" "$variant_output"
 
 # ---------------------------------------------------------------------------
 # config_update (mocked GitHub API)
