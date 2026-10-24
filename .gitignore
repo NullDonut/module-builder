@@ -1,0 +1,10 @@
+*.apk
+*.zip
+/temp
+/build
+/logs
+build.md
+build.tmp
+config.json
+*-temporary-files
+.DS_Store

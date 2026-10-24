@@ -1,0 +1,124 @@
+# module-builder example config
+#
+# Copy this file to config.toml and edit it. All keys are optional except that
+# each enabled app needs at least one download source (or a local stock-apk).
+#
+# Values are TOML: strings use "double quotes" or 'single quotes'; multiline
+# strings use """...""". Whitespace-separated lists are used for patch names,
+# sources, hooks and extra files.
+
+# ---------------------------------------------------------------------------
+# Global defaults
+# ---------------------------------------------------------------------------
+
+parallel-jobs = 1                  # number of app/arch jobs to run at once
+compression-level = 9              # module zip compression level (0-9)
+remove-rv-integrations-checks = true
+enable-module-update = true        # writes updateJson= into module.prop
+hooks-enabled = true
+verify-signature = true            # verify stock APK against sig.txt
+
+# Defaults inherited by every app unless the app overrides them.
+patches-source = "ReVanced/revanced-patches"
+cli-source = "ReVanced/revanced-cli"
+patches-version = "latest"         # latest, dev, or a tag/version
+cli-version = "latest"             # latest, dev, or a tag/version
+rv-brand = "ReVanced"
+dpi = "nodpi anydpi"               # apkmirror/uptodown dpi preference
+
+# Optional: restrict/reorder the download source registry. Default is the
+# plugin priority order: direct archive apkmirror uptodown.
+# download-sources = "direct archive apkmirror"
+
+# Signing (the repository ships throwaway keys for reproducible builds).
+keystore = "ks.keystore"
+keystore-password = "123456789"
+keystore-entry-password = "123456789"
+signer = "jhc"
+keystore-entry-alias = "jhc"
+merge-keystore = "ks-p12.keystore"
+merge-keystore-password = "123456789"
+merge-key-password = "123456789"
+merge-keystore-alias = "jhc"
+
+# Output filename templates. Placeholders:
+#   {table} {app} {app_name} {brand} {version} {arch} {kind} {pkg}
+apk-name-format = "{app}-{brand}-v{version}-{arch}.apk"
+module-name-format = "{app}-{brand}-module-v{version}-{arch}.zip"
+
+# Optional: default update.json base URL. When unset it is derived from
+# GITHUB_REPOSITORY as https://raw.githubusercontent.com/<repo>/update
+# update-json-base-url = "https://raw.githubusercontent.com/NullDonut/module-builder/update"
+
+# ---------------------------------------------------------------------------
+# A reusable preset. Presets are not built; apps opt in with `inherits`.
+# ---------------------------------------------------------------------------
+
+[Base]
+preset = true
+patches-source = "MorpheApp/morphe-patches"
+cli-source = "MorpheApp/morphe-cli"
+patches-version = "dev"
+cli-version = "dev"
+rv-brand = "Morphe-dev"
+build-mode = "both"
+patcher-args = "-e 'Custom branding' -OappIcon=original"
+
+# ---------------------------------------------------------------------------
+# Apps
+# ---------------------------------------------------------------------------
+
+[YouTube]
+inherits = "Base"
+app-name = "YouTube"
+version = "auto"
+arch = "all"
+direct-dlurl = "https://github.com/example/apks/releases/download/1/com.google.android.youtube-21.20.405-all.apk"
+archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.youtube"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
+# module-id = "youtube-shivanshbansal"
+# module-name = "YouTube Morphe"
+# module-description = "Patched YouTube module"
+# module-author = "shivanshbansal"
+# module-version = "1.0.0"
+# module-template = "module"
+# include-stock = "merged"
+# extra-module-files = "extras/youtube"
+# pre-build-hook = "hooks/my-pre-build.sh"
+# post-patch-hook = "hooks/my-post-patch.sh"
+# post-module-hook = "hooks/my-post-module.sh"
+# update-json-name = "youtube-update.json"
+# enable-module-update = true
+# enable-update-checks = false
+# update-check-patch-url = "https://github.com/owner/repo/releases/latest/download/patch.mpp"
+# stock-apk = "downloads/youtube-stock.apk"
+# pkg-name = "com.google.android.youtube"
+# dpi = "nodpi anydpi 360-480dpi"
+# download-sources = "direct archive apkmirror"
+
+[YT-Music]
+inherits = "Base"
+app-name = "YT Music"
+version = "auto"
+arch = "arm64-v8a"
+direct-dlurl = "https://github.com/example/apks/releases/download/1/com.google.android.apps.youtube.music-9.20.53-arm64-v8a.apk"
+archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.apps.youtube.music"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
+
+# ---------------------------------------------------------------------------
+# A module-only app, with no APK output
+# ---------------------------------------------------------------------------
+
+# [SomeApp]
+# app-name = "Some App"
+# enabled = true
+# build-mode = "module"             # both, apk or module
+# version = "1.2.3"
+# arch = "arm64-v8a"                # all, both, arm64-v8a, arm-v7a, x86, x86_64
+# include-stock = "split"           # merged, split or disable
+# apkmirror-dlurl = "https://www.apkmirror.com/apk/vendor/some-app"
+# included-patches = "'Some Patch'"
+# excluded-patches = """\
+#   'Another Patch' \
+#   """
+# exclusive-patches = false
