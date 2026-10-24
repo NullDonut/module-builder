@@ -645,7 +645,7 @@ clear_update_cache
 update_out=$(config_update)
 assert_eq "AppOne AppTwo BasePreset" "$(jq -r '[keys[] | select(. == "AppOne" or . == "AppTwo" or . == "BasePreset" or . == "DisabledApp")] | sort | join(" ")' <<<"$update_out")"
 
-testcase "a changed CLI alone triggers an update"
+testcase "a changed CLI alone does not trigger an update"
 cat >"$SANDBOX/build-cli.md" <<'EOF'
 Patches: Owner/patches/patches-1.2.3.jar
 Patches: Owner/patches2/patches-2.0.0.jar
@@ -654,7 +654,7 @@ EOF
 BUILD_LOG="$SANDBOX/build-cli.md"
 clear_update_cache
 update_out=$(config_update)
-assert_eq "AppOne AppTwo" "$(jq -r '[keys[] | select(. == "AppOne" or . == "AppTwo")] | sort | join(" ")' <<<"$update_out")"
+assert_eq "" "$update_out"
 
 testcase "config_update fails when the build log is missing"
 BUILD_LOG="$SANDBOX/no-such-build.md"

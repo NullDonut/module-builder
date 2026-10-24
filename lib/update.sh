@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # module-builder - CI config update
 #
-# Prints a JSON config to stdout when a configured patches/CLI release is not
+# Prints a JSON config to stdout when a configured patches release is not
 # present in build.md (the previous release log). Prints nothing when a rebuild
-# is unnecessary. Diagnostics go to stderr.
+# is unnecessary. Only the patches release triggers an automatic rebuild: a
+# CLI-only change must not create another release for the same patches version.
+# Same-version rebuilds are started manually with the Build Modules workflow.
+# Diagnostics go to stderr.
 #
 # Copyright (C) 2024-2026 Peter Noël Muller
 # Copyright (C) 2026 Shivansh Bansal
@@ -66,8 +69,8 @@ release_asset_name() {
 }
 
 config_update() {
-	local table patches_src patches_ver cli_src cli_ver
-	local patches_name cli_name patches_line cli_line
+	local table patches_src patches_ver
+	local patches_name patches_line
 	local -a updated=() all=()
 
 	if [ ! -f "$BUILD_LOG" ]; then
@@ -85,8 +88,6 @@ config_update() {
 
 		patches_src=$(config_get_effective "$table" patches-source "${DEF_PATCHES_SRC:-ReVanced/revanced-patches}")
 		patches_ver=$(config_get_effective "$table" patches-version "${DEF_PATCHES_VER:-latest}")
-		cli_src=$(config_get_effective "$table" cli-source "${DEF_CLI_SRC:-ReVanced/revanced-cli}")
-		cli_ver=$(config_get_effective "$table" cli-version "${DEF_CLI_VER:-latest}")
 
 		if ! patches_name=$(release_asset_name patches "$patches_src" "$patches_ver"); then
 			wpr "Could not resolve patches release for '${table}'"
@@ -94,17 +95,9 @@ config_update() {
 		fi
 		patches_line="Patches: ${patches_src}/${patches_name}"
 
-		# CLI failures are non-fatal: the patches release is the primary
-		# rebuild trigger, matching the original builder's behavior.
-		if cli_name=$(release_asset_name cli "$cli_src" "$cli_ver" 2>/dev/null); then
-			cli_line="CLI: ${cli_src}/${cli_name}"
-		else
-			cli_line=""
-		fi
-
+		# Exact matching means a new CLI release for the same patches version
+		# does not automatically create a duplicate release.
 		if ! grep -qFx -- "$patches_line" "$BUILD_LOG"; then
-			updated+=("$table")
-		elif [ -n "$cli_line" ] && ! grep -qFx -- "$cli_line" "$BUILD_LOG"; then
 			updated+=("$table")
 		fi
 	done

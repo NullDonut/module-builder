@@ -9,6 +9,12 @@ on:
         default: true
 
   workflow_dispatch:
+    inputs:
+      from_ci:
+        description: "Only release when a new patches version is available"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   run:
@@ -27,17 +33,37 @@ jobs:
           submodules: true
 
       - name: Update config
+        id: prepare
         if: ${{ inputs.from_ci }}
         run: |
+          echo "has_update=false" >> "$GITHUB_OUTPUT"
           if git checkout origin/update build.md; then
             UPDATE_CFG=$(./build.sh config.toml --config-update)
             if [ -n "$UPDATE_CFG" ]; then
               echo "$UPDATE_CFG" > config.json
+              echo "has_update=true" >> "$GITHUB_OUTPUT"
             fi
+          else
+            echo "first time building!"
+            echo "has_update=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # Manual Build Modules runs always release. Runs started by CI only
+      # release when build.md does not already contain the current patches
+      # release, so a CLI-only change cannot create a duplicate release.
+      - name: Decide whether to release
+        id: release
+        run: |
+          SHOULD_RELEASE=true
+          if [ "${{ inputs.from_ci }}" = "true" ] && [ "${{ steps.prepare.outputs.has_update }}" != "true" ]; then
+            SHOULD_RELEASE=false
+            echo "No new patches version; skipping build and release."
+          fi
+          echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
 
       - name: Get next version code
         id: next_ver_code
+        if: ${{ steps.release.outputs.should_release == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -46,6 +72,7 @@ jobs:
           echo "NEXT_VER_CODE=$((TAG + 1))" >> "$GITHUB_OUTPUT"
 
       - name: Build modules/APKs
+        if: ${{ steps.release.outputs.should_release == 'true' }}
         run: |
           if [ -f config.json ]; then
             ./build.sh config.json
@@ -59,6 +86,7 @@ jobs:
 
       - name: Get output
         id: get_output
+        if: ${{ steps.release.outputs.should_release == 'true' }}
         run: |
           DELIM="$(openssl rand -hex 8)"
           echo "BUILD_LOG<<${DELIM}" >> "$GITHUB_OUTPUT"
@@ -67,6 +95,7 @@ jobs:
           cp -f build.md build.tmp
 
       - name: Upload release
+        if: ${{ steps.release.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
@@ -82,6 +111,7 @@ jobs:
 
       - name: Update modules changelog and update json
         id: update_config
+        if: ${{ steps.release.outputs.should_release == 'true' }}
         env:
           NEXT_VER_CODE: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
         run: |
@@ -113,6 +143,7 @@ jobs:
           fi
 
       - name: Commit module json changes
+        if: ${{ steps.release.outputs.should_release == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -132,7 +163,7 @@ jobs:
           # TG_CHAT must be a numeric chat ID or @channelusername. The
           # TG_BOTNAME fallback keeps older repository variable names working.
           TG_CHAT: ${{ vars.TG_CHAT_ID || vars.TG_BOTNAME }}
-        if: ${{ env.TG_TOKEN != '' && env.TG_CHAT != '' }}
+        if: ${{ steps.release.outputs.should_release == 'true' && env.TG_TOKEN != '' && env.TG_CHAT != '' }}
         run: |
           cd build || { echo "build folder not found"; exit 1; }
 

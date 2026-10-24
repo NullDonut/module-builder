@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Should build?
+      - name: Should build? (new patches version only)
         id: should_build
         shell: bash
         env:
@@ -30,6 +30,8 @@ jobs:
             echo "first time building!"
             echo "SHOULD_BUILD=1" >> "$GITHUB_OUTPUT"
           else
+            # Only a new patches version triggers a CI build/release. Rebuilds
+            # with the same version are manual (Build Modules workflow).
             UPDATE_CFG=$(./build.sh config.toml --config-update)
             if [ -n "$UPDATE_CFG" ]; then
               echo "SHOULD_BUILD=1" >> "$GITHUB_OUTPUT"

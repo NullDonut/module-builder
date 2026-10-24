@@ -65,9 +65,11 @@ pkg install jq curl zip unzip openjdk-21 aapt2
 ./build.sh config.toml --config-update > config.json
 ```
 
-`--config-update` prints a JSON config only when a configured patches or CLI
-release is not present in `build.md`. The GitHub workflows use it to rebuild
-only when there is something new.
+`--config-update` prints a JSON config only when a configured patches release
+is not present in `build.md`. CI uses it to rebuild and release only when the
+Morphe patches version changes. A new CLI release for the same patches version
+does **not** trigger a release; rebuilds with unchanged versions must be started
+manually with the **Build Modules** workflow.
 
 ## Tests
 
