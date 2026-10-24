@@ -1,4 +1,4 @@
-Patches: MorpheApp/morphe-patches/patches-1.49.0-dev.4.mpp
+Patches: MorpheApp/morphe-patches/patches-1.49.0-dev.5.mpp
 CLI: MorpheApp/morphe-cli/morphe-desktop-1.19.1-dev.1-all.jar
 YT-Music-Morphe: 9.20.53
 YouTube-Morphe: 21.23.492
