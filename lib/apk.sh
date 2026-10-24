@@ -102,6 +102,7 @@ aapt2_pkg_name() {
 resolve_pkg_name() {
 	local table=$1
 	local pkg_name src url stock_apk
+	local -a sources=()
 
 	if pkg_name=$(config_get_effective "$table" pkg-name ""); then
 		if [ -n "$pkg_name" ]; then
@@ -126,7 +127,8 @@ resolve_pkg_name() {
 		fi
 	fi
 
-	while IFS= read -r src; do
+	mapfile -t sources < <(source_names_for "$table")
+	for src in "${sources[@]}"; do
 		[ -n "$src" ] || continue
 		url=$(source_url "$table" "$src")
 		[ -n "$url" ] || continue
@@ -140,7 +142,7 @@ resolve_pkg_name() {
 				return 0
 			fi
 		fi
-	done < <(source_names_for "$table")
+	done
 	return 1
 }
 
@@ -149,6 +151,7 @@ resolve_pkg_name() {
 pick_source() {
 	local table=$1 preferred=${2-}
 	local src url
+	local -a sources=()
 	if [ -n "$preferred" ]; then
 		url=$(source_url "$table" "$preferred")
 		if [ -n "$url" ]; then
@@ -156,14 +159,15 @@ pick_source() {
 			return 0
 		fi
 	fi
-	while IFS= read -r src; do
+	mapfile -t sources < <(source_names_for "$table")
+	for src in "${sources[@]}"; do
 		[ -n "$src" ] || continue
 		url=$(source_url "$table" "$src")
-		[ -n "$url" ] && {
+		if [ -n "$url" ]; then
 			printf '%s' "$src"
 			return 0
-		}
-	done < <(source_names_for "$table")
+		fi
+	done
 	return 1
 }
 

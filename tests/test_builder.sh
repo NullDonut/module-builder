@@ -373,6 +373,26 @@ assert_contains "Unknown download source" "$unknown_out"
 testcase "source URL trailing slash is normalised"
 assert_eq "https://example.test/beta" "$(source_url AlphaApp beta)"
 
+testcase "direct source parses <package>-<version>-<arch>.apk"
+direct_ok=$( ( . "${PROJECT_ROOT}/sources/10-direct.sh"
+	source_direct_resp "https://example.test/com.example.app-1.2.3-all.apk" &&
+		printf '%s|%s|%s' "$__SOURCE_DIRECT_PKG" "$__SOURCE_DIRECT_VERSION" "$__SOURCE_DIRECT_ARCH") )
+assert_eq "com.example.app|1.2.3|all" "$direct_ok"
+
+testcase "direct source accepts an arm64-v8a filename"
+direct_arm=$( ( . "${PROJECT_ROOT}/sources/10-direct.sh"
+	source_direct_resp "https://example.test/com.example.app-1.2.3-arm64-v8a.apk" &&
+		printf '%s|%s' "$__SOURCE_DIRECT_PKG" "$__SOURCE_DIRECT_ARCH") )
+assert_eq "com.example.app|arm64-v8a" "$direct_arm"
+
+testcase "direct source rejects APKMirror-style filenames"
+if ( . "${PROJECT_ROOT}/sources/10-direct.sh"
+	source_direct_resp "https://example.test/com.google.android.youtube_21.23.492-1561177001_minAPI28.arm64-v8a.armeabi-v7a.x86.x86_64.nodpi._apkmirror.com.apk" ) 2>/dev/null; then
+	fail "expected the APKMirror-style filename to be rejected"
+else
+	pass
+fi
+
 # ---------------------------------------------------------------------------
 # Output names
 # ---------------------------------------------------------------------------

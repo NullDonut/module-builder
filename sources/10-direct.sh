@@ -16,25 +16,40 @@ __SOURCE_DIRECT_ARCH=""
 __SOURCE_DIRECT_EXT=""
 
 source_direct_parse() {
-	local url=$1 base
+	local url=$1 base pkg ver arch
 	base=${url%%\?*}
 	base=${base##*/}
 	__SOURCE_DIRECT_URL=$url
 	__SOURCE_DIRECT_EXT=${base##*.}
+	__SOURCE_DIRECT_PKG=""
+	__SOURCE_DIRECT_VERSION=""
+	__SOURCE_DIRECT_ARCH=""
+
 	if [[ $base =~ ^([^-]+)-([0-9][^-]*)-(.+)\.(apk|apkm)$ ]]; then
-		__SOURCE_DIRECT_PKG=${BASH_REMATCH[1]}
-		__SOURCE_DIRECT_VERSION=${BASH_REMATCH[2]}
-		__SOURCE_DIRECT_ARCH=${BASH_REMATCH[3]}
-	else
-		__SOURCE_DIRECT_PKG=""
-		__SOURCE_DIRECT_VERSION=""
-		__SOURCE_DIRECT_ARCH=""
+		pkg=${BASH_REMATCH[1]}
+		ver=${BASH_REMATCH[2]}
+		arch=${BASH_REMATCH[3]}
+		# Only accept the documented <package>-<version>-<arch> layout.
+		# This rejects APKMirror-style filenames such as
+		# com.google.android.youtube_21.23.492-..._apkmirror.com.apk,
+		# which would otherwise be parsed as a bogus package name.
+		case "$arch" in
+		all | universal | noarch | arm64-v8a | arm-v7a | armeabi-v7a | x86 | x86_64)
+			__SOURCE_DIRECT_PKG=$pkg
+			__SOURCE_DIRECT_VERSION=$ver
+			__SOURCE_DIRECT_ARCH=$arch
+			;;
+		esac
 	fi
 }
 
 source_direct_resp() {
 	source_direct_parse "$1"
-	[ -n "$__SOURCE_DIRECT_PKG" ]
+	if [ -z "$__SOURCE_DIRECT_PKG" ]; then
+		wpr "direct-dlurl must look like '<package>-<version>-<arch>.apk': ${1##*/}"
+		return 1
+	fi
+	return 0
 }
 
 source_direct_pkg_name() { printf '%s\n' "$__SOURCE_DIRECT_PKG"; }
