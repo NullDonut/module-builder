@@ -192,6 +192,7 @@ jobs:
           if [ -n "$APKS" ]; then APKS="APKs:${NL}${APKS#"$NL"}"; fi
 
           BODY="$(cat ../build.md)"
+          RELEASE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}"
           MSG="*New Build Released! 🎉*
 
           ${BODY}
@@ -203,8 +204,41 @@ jobs:
 
           *🌟 Check out the builder source:*
           https://github.com/${GITHUB_REPOSITORY}
+
+          *Full release notes:* ${RELEASE_URL}
           "
-          echo "'$MSG'"
-          MSG=${MSG:0:9450}
+          echo "Sending Telegram message (${#MSG} characters)"
+
           POST="https://api.telegram.org/bot${TG_TOKEN}/sendMessage"
-          curl -X POST --data-urlencode "parse_mode=Markdown" --data-urlencode "disable_web_page_preview=true" --data-urlencode "text=${MSG}" --data-urlencode "chat_id=${TG_CHAT}" "$POST"
+          # sendMessage rejects bodies over 4096 characters, so split on line
+          # boundaries and fail the step if Telegram rejects any chunk.
+          MAX=4000
+          send_chunk() {
+            local text=$1 resp
+            if ! resp=$(curl -sS --fail-with-body -X POST \
+              --data-urlencode "parse_mode=Markdown" \
+              --data-urlencode "disable_web_page_preview=true" \
+              --data-urlencode "text=${text}" \
+              --data-urlencode "chat_id=${TG_CHAT}" \
+              "$POST"); then
+              echo "Telegram request failed: ${resp}" >&2
+              return 1
+            fi
+            if [ "$(jq -r '.ok // false' <<<"$resp")" != "true" ]; then
+              echo "Telegram API rejected the message: ${resp}" >&2
+              return 1
+            fi
+          }
+
+          remaining=$MSG
+          while [ -n "$remaining" ]; do
+            chunk=${remaining:0:$MAX}
+            if [ "${#remaining}" -gt "$MAX" ] && [[ $chunk == *$'\n'* ]]; then
+              chunk=${chunk%$'\n'*}
+            fi
+            # A single line longer than MAX still needs to make progress.
+            [ -n "$chunk" ] || chunk=${remaining:0:$MAX}
+            send_chunk "$chunk"
+            remaining=${remaining:${#chunk}}
+            remaining=${remaining#$'\n'}
+          done
