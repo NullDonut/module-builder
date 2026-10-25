@@ -179,6 +179,11 @@ The build workflow can post release links to Telegram. Configure:
 **not** a chat ID. There is currently **no Instagram (IG) integration**; only
 Telegram is implemented.
 
+Each release body (which is also the Telegram message) includes a
+`Patches changelog:` line linking to the upstream patches release notes for the
+resolved version, e.g.
+`https://github.com/MorpheApp/morphe-patches/releases/tag/v1.49.0-dev.5`.
+
 ## Credits
 
 - [revanced-morphe-builder](https://github.com/peternmuller/revanced-morphe-builder)

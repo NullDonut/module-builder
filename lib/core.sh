@@ -353,6 +353,26 @@ resolve_prebuilt() {
 	printf '%s\n' "$file"
 }
 
+# Upstream release notes (changelog) link for a resolved patches file.
+#
+# Arguments: <repo> <patches file>
+# Prints the GitHub release URL for the patches version. Release tags in the
+# supported patch repositories are v-prefixed, while the normalised asset name
+# drops that prefix, so it is added back here.
+patches_changelog_url() {
+	local src=$1 patches_file=$2 base ver
+	base=$(basename "$patches_file")
+	# Strip only known asset extensions so a version without a dot is kept.
+	case "$base" in
+	*.jar | *.mpp | *.apk) base=${base%.*} ;;
+	esac
+	ver=${base#patches-}
+	if [ -z "$ver" ] || [ "$ver" = "$base" ]; then
+		return 1
+	fi
+	printf 'https://github.com/%s/releases/tag/v%s' "$src" "$ver"
+}
+
 # Resolve both prebuilts. Prints two lines: patches path, cli path.
 get_prebuilts() {
 	local cli_src=$1 cli_ver=$2 patches_src=$3 patches_ver=$4

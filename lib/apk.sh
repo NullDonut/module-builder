@@ -264,6 +264,9 @@ build_variant() {
 		return 1
 	fi
 	log "Patches: ${patches_src}/$(basename "$patches_jar")"
+	if changelog_url=$(patches_changelog_url "$patches_src" "$patches_jar"); then
+		log "Patches changelog: ${changelog_url}"
+	fi
 	log "CLI: ${cli_src}/$(basename "$cli_jar")"
 
 	# get_patch_last_supported_ver uses these globals.

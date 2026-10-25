@@ -394,6 +394,25 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Patches changelog links
+# ---------------------------------------------------------------------------
+
+testcase "patches changelog points at the release tag"
+assert_eq "https://github.com/Owner/patches/releases/tag/v1.2.3" \
+	"$(patches_changelog_url Owner/patches temp/patches-1.2.3.jar)"
+
+testcase "patches changelog keeps pre-release suffixes"
+assert_eq "https://github.com/Owner/patches/releases/tag/v1.3.0-dev.1" \
+	"$(patches_changelog_url Owner/patches temp/morphe-rv/patches-1.3.0-dev.1.mpp)"
+
+testcase "patches changelog rejects files without a patches version"
+if patches_changelog_url Owner/patches temp/not-patches.jar >/dev/null 2>&1; then
+	fail "expected a failure for a malformed patches filename"
+else
+	pass
+fi
+
+# ---------------------------------------------------------------------------
 # Output names
 # ---------------------------------------------------------------------------
 
