@@ -35,6 +35,8 @@ jobs:
       - name: Update config
         id: prepare
         if: ${{ inputs.from_ci }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "has_update=false" >> "$GITHUB_OUTPUT"
           if git checkout origin/update build.md; then
