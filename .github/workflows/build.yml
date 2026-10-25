@@ -18,6 +18,10 @@ on:
 
 jobs:
   run:
+    # Serialise scheduled and manual runs so two jobs cannot claim the same tag.
+    concurrency:
+      group: build-modules
+      cancel-in-progress: false
     permissions: write-all
     runs-on: ubuntu-24.04
     steps:
@@ -69,9 +73,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG=$(gh release list -L 1 | awk -F '\t' '{print $3}')
-          if [ -z "$TAG" ]; then TAG=0; fi
-          echo "NEXT_VER_CODE=$((TAG + 1))" >> "$GITHUB_OUTPUT"
+          TAG=$(gh release list --limit 1000 --json tagName --jq '.[].tagName' 2>/dev/null \
+            | grep -E '^[0-9]+$' | sort -n | tail -n 1 || true)
+          TAG=${TAG:-0}
+          echo "NEXT_VER_CODE=$((10#${TAG} + 1))" >> "$GITHUB_OUTPUT"
 
       - name: Build modules/APKs
         if: ${{ steps.release.outputs.should_release == 'true' }}
