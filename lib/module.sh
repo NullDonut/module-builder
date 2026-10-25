@@ -79,11 +79,7 @@ module_update_json_url() {
 
 # Version string shown in module.prop.
 module_patches_version() {
-	local patches_jar=$1 base
-	base=$(basename "$patches_jar")
-	base=${base%.jar}
-	base=${base#patches-}
-	printf '%s' "$base"
+	patches_file_version "$1" || basename "$1"
 }
 
 module_config_write() {

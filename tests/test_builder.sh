@@ -508,6 +508,12 @@ assert_contains "PKG_NAME='com.example.test'" "$module_config"
 assert_contains "MODULE_ARCH='arm64'" "$module_config"
 assert_contains "MODULE_ID='com.example.test-arm64'" "$module_config"
 
+testcase "module patches version strips .mpp assets"
+assert_eq "1.49.0-dev.5" "$(module_patches_version temp/patches-1.49.0-dev.5.mpp)"
+
+testcase "module patches version strips .apk assets"
+assert_eq "2.0.0" "$(module_patches_version temp/patches-2.0.0.apk)"
+
 testcase "post-module hook receives module metadata"
 assert_file_contains "$SANDBOX/hook.log" "TestApp|com.example.test-arm64|arm64-v8a|1.0.0|${module_zip}"
 

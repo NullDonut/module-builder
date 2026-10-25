@@ -353,15 +353,14 @@ resolve_prebuilt() {
 	printf '%s\n' "$file"
 }
 
-# Upstream release notes (changelog) link for a resolved patches file.
+# Version portion of a resolved patches asset (without the leading v).
 #
-# Arguments: <repo> <patches file>
-# Prints the GitHub release URL for the patches version. Release tags in the
-# supported patch repositories are v-prefixed, while the normalised asset name
-# drops that prefix, so it is added back here.
-patches_changelog_url() {
-	local src=$1 patches_file=$2 base ver
-	base=$(basename "$patches_file")
+# Arguments: <patches file>
+# Handles .jar, .mpp and .apk assets. Fails when the filename is not a normal
+# patches-<version>.<ext> asset.
+patches_file_version() {
+	local base=$1 ver
+	base=$(basename "$base")
 	# Strip only known asset extensions so a version without a dot is kept.
 	case "$base" in
 	*.jar | *.mpp | *.apk) base=${base%.*} ;;
@@ -370,6 +369,18 @@ patches_changelog_url() {
 	if [ -z "$ver" ] || [ "$ver" = "$base" ]; then
 		return 1
 	fi
+	printf '%s' "$ver"
+}
+
+# Upstream release notes (changelog) link for a resolved patches file.
+#
+# Arguments: <repo> <patches file>
+# Prints the GitHub release URL for the patches version. Release tags in the
+# supported patch repositories are v-prefixed, while the normalised asset name
+# drops that prefix, so it is added back here.
+patches_changelog_url() {
+	local src=$1 ver
+	ver=$(patches_file_version "$2") || return 1
 	printf 'https://github.com/%s/releases/tag/v%s' "$src" "$ver"
 }
 
