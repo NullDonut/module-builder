@@ -417,6 +417,8 @@ run_jobs() {
 		wpr "${skipped} build job(s) were skipped."
 	fi
 	dpr "jobs: success=${success} skipped=${skipped} failed=${failed}"
+
+	((failed == 0))
 }
 
 declare -a SPECS=()
@@ -455,11 +457,17 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 : >"$BUILD_LOG"
 
-run_jobs "${VALID_SPECS[@]}"
+# A partial build must not publish a release that silently omits some apps.
+JOBS_RC=0
+run_jobs "${VALID_SPECS[@]}" || JOBS_RC=$?
 _clean_tmp
 
 if [ -z "$(ls -A1 "$BUILD_DIR" 2>/dev/null || :)" ]; then
 	abort "All builds failed."
+fi
+
+if [ "$JOBS_RC" -ne 0 ]; then
+	abort "One or more build jobs failed; refusing to publish a partial release."
 fi
 
 log ""
