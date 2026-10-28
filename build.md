@@ -1,5 +1,5 @@
-Patches: MorpheApp/morphe-patches/patches-1.49.0-dev.9.mpp
-Patches changelog: https://github.com/MorpheApp/morphe-patches/releases/tag/v1.49.0-dev.9
+Patches: MorpheApp/morphe-patches/patches-1.49.0-dev.10.mpp
+Patches changelog: https://github.com/MorpheApp/morphe-patches/releases/tag/v1.49.0-dev.10
 CLI: MorpheApp/morphe-cli/morphe-desktop-1.20.0-dev.3-all.jar
 YT-Music-Morphe: 9.20.53
 YouTube-Morphe: 21.23.492
