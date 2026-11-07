@@ -15,7 +15,7 @@ trigger a rewrite of the builder.
 > Status (2026-11-07): the highest-impact release bugs are fixed. Runtime
 > reports were triaged as external (see below). CI now keeps per-release
 > changelogs, uses least-privilege permissions, pinned actions and timeouts.
-> Remaining work is unchanged.
+> The remaining LTS backlog is tracked in Phase 5.
 
 ---
 
@@ -165,17 +165,112 @@ Highest value: a release should never be wrong, partial, or silently fail.
 
 ---
 
+## Phase 5 - LTS operations and supply chain
+
+Phases 1-4 make builds correct, reproducible and testable. LTS also needs
+artifacts that can be verified after release, a predictable upgrade/rollback
+path, and a documented support window. Treat this phase as the backlog for the
+LTS release line; it can land after the core pipeline is stable.
+
+### Release governance and channels
+
+- [ ] Define `stable` and `edge` channels, with separate release tags or
+      metadata, so testers are not forced onto every dev patch release.
+- [ ] Publish a support policy: supported builder versions, patch/CLI ranges,
+      platforms (Ubuntu x64, Termux aarch64), root managers and an EOL date.
+- [ ] Keep a release checklist covering config validation, smoke tests,
+      changelog generation, checksum verification and Telegram delivery.
+- [ ] Automate release notes from commits/PR labels, and keep a curated
+      changelog for breaking config changes.
+- [ ] Define a rollback/yank procedure for a bad release, including how to
+      remove assets and how modules recover on the next update check.
+- [ ] Retain release artifacts and changelogs for at least the supported
+      window, not only the latest version.
+
+### Artifact integrity and provenance
+
+- [ ] Publish `SHA256SUMS` for every release and attach it to the release.
+- [ ] Sign checksum files and `update.json` metadata (minisign or cosign),
+      and document how users and the module updater can verify them.
+- [ ] Add SLSA-style build provenance / GitHub artifact attestations so a
+      downloaded module can be traced back to the workflow and commit.
+- [ ] Verify the upstream patches bundle signature (Morphe `.mpp`
+      `MorpheSig1`) before patching, and fail closed when it is invalid.
+- [ ] Include `sha256`, `size`, `releaseDate`, `minVersionCode` and `channel`
+      in `update.json`, not just version, URL and changelog.
+- [ ] Add a `--verify-release` mode that checks an existing release directory
+      or URL against the published checksums.
+
+### Upgrade, rollback and compatibility
+
+- [ ] Version the builder config (`config-version`) and add migrations plus
+      deprecation warnings for renamed or removed keys.
+- [ ] Keep module IDs and output filenames stable across upgrades; document
+      any intentional rename and provide a migration note.
+- [ ] Define downgrade behavior: `versionCode` must stay monotonic, and an
+      older module must not be offered as an "update" over a newer install.
+- [ ] Publish a compatibility table for builder version, config version,
+      patches/CLI versions and supported Android/root setups.
+- [ ] Add tests that load pinned historical configs and verify they still
+      resolve to the same effective settings.
+
+### Build environment reproducibility
+
+- [ ] Pin the JDK distribution/version, Ubuntu runner image and Termux package
+      set by version and checksum, not only by major tag.
+- [ ] Add a reproducibility check that builds the same config twice and
+      compares artifact hashes (excluding signatures if they are timestamped).
+- [ ] Run the test suite on both supported platforms (Ubuntu x64 and Termux
+      aarch64) in CI; the Termux path is currently bootstrap-only.
+- [ ] Add per-app timeouts and cancellation so a hung patch or download cannot
+      consume the whole job budget.
+- [ ] Cache immutable downloads and tools, and verify cache entries against
+      the lockfile before reuse.
+
+### Security and operations
+
+- [ ] Generate an SBOM for the builder and include the resolved patches/CLI
+      versions in it.
+- [ ] Add CodeQL, OpenSSF Scorecard, secret scanning and dependency review to
+      the repository.
+- [ ] Restrict hooks in CI to trusted paths and document the execution model;
+      hooks are currently arbitrary shell with build credentials available.
+- [ ] Move signing keys to repository secrets, document key rotation, and fail
+      releases that use the template password.
+- [ ] Add `SECURITY.md` with a vulnerability-reporting process and a supported
+      window for security fixes.
+
+### Verification and observability
+
+- [ ] Add an old-version integration test: install an older module, fetch the
+      new `update.json`, and assert the version, checksum and changelog all
+      belong to the same release.
+- [ ] Add a Magisk/KernelSU install smoke test on an emulator or test device
+      that verifies mount, native-library extraction and the module description.
+- [ ] Record builder version/commit, patches/CLI versions and artifact hashes
+      in `build.md` and `module.prop` so a bug report is self-contained.
+- [ ] Emit per-app duration, artifact size and failure-reason metrics in the
+      job summary to spot slow or flaky apps over time.
+- [ ] Maintain a "known-good versions" page for users who need to pin patches
+      or roll back after an upstream regression.
+
+---
+
 ## What "LTS-ready" means for this repo
 
 A release is LTS-ready when all of these are true:
 
 - the same config plus lockfile produces the same artifacts
 - every download is checksum-verified
+- artifacts and update metadata are signed and have verifiable provenance
 - a failed app can never silently publish
 - release notes contain patches and CLI versions, the changelog link, app
   versions and checksums
-- old module versions keep their original changelog
+- old module versions keep their original changelog, checksum and metadata
 - CI is concurrency-safe, least-privilege and reproducible
+- CI tests both supported platforms and a real module install path
+- upgrade, rollback and deprecation policies are documented and tested
+- old configs keep working or fail with a clear migration message
 - one command validates the config and the environment
 
 ---
@@ -187,3 +282,5 @@ A release is LTS-ready when all of these are true:
 3. Phase 2: lockfile, checksums, changelog history, action pinning.
 4. Phase 3: schema, validation, `--doctor`, download resilience.
 5. Phase 4: linting, deterministic logs, end-to-end tests, docs.
+6. Phase 5: release channels, signing/provenance, migration policy, platform
+   matrix and install smoke tests.
