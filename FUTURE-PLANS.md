@@ -7,8 +7,33 @@ supply-chain safety, a stable config format, and a documented support policy.
 Items are ordered by impact. Security and release-correctness issues come before
 new features.
 
-> Status (2026-10-25): the highest-impact release bugs are fixed. See the
-> checked items below. Remaining work is unchanged.
+Scope: module-builder owns downloading, patching and packaging. Runtime symptoms
+of the patched apps (sign-in, playback, buffering, account state) belong to the
+patch projects, the device/root setup, or the user's network. They should not
+trigger a rewrite of the builder.
+
+> Status (2026-11-07): the highest-impact release bugs are fixed. Runtime
+> reports were triaged as external (see below). Remaining work is unchanged.
+
+---
+
+## Runtime triage (not builder bugs)
+
+Reports against built APKs/modules that were investigated and found to be
+outside the builder. Keep these here so they are not re-opened as builder
+defects.
+
+- [x] **Sign-in failures and slow video buffering (2026-11-07).**
+      Reported on a poor village connection for the YouTube and YT Music
+      modules. Root modules install the stock APK and bind-mount the patched
+      APK, so package identity/signature and Google sign-in stay intact; the
+      builder does not touch accounts or playback networking. An equivalent
+      upstream Morphe report
+      ([MorpheApp/morphe-patches#4113](https://github.com/MorpheApp/morphe-patches/issues/4113))
+      found the same buffering on stock YouTube and the web client, and was
+      resolved after the reporter contacted their ISP. Conclusion: carrier or
+      local network issue, not a builder defect. Do not change build config or
+      download logic for this class of report.
 
 ---
 
