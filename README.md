@@ -174,15 +174,31 @@ The build workflow can post release links to Telegram. Configure:
 - `TG_TOKEN` — repository **secret** containing the bot token.
 - `TG_CHAT_ID` — repository **variable** with a numeric chat ID or
   `@channelusername`. The bot must be a member/admin of that chat.
+- `TG_THREAD_ID` — optional repository **variable** with a forum topic/thread
+  ID. Use it when the target group is a forum.
 
 `TG_BOTNAME` is still read as a fallback for existing setups, but a bot name is
 **not** a chat ID. There is currently **no Instagram (IG) integration**; only
 Telegram is implemented.
 
+Telegram messages are split on line boundaries and retried with exponential
+backoff (five attempts) before the step fails.
+
 Each release body (which is also the Telegram message) includes a
 `Patches changelog:` line linking to the upstream patches release notes for the
 resolved version, e.g.
 `https://github.com/MorpheApp/morphe-patches/releases/tag/v1.49.0-dev.5`.
+
+## Release workflow
+
+CI publishes each build as `Release <versionCode>`. It also writes an immutable
+per-release changelog to `changelogs/<versionCode>.md` on the `update` branch,
+and every `update.json` points at that file instead of the moving `build.md`.
+An older installed module therefore keeps the changelog that belongs to its
+release.
+
+Manual `Build Modules` runs accept a `draft` input to create a draft release
+for testing.
 
 ## Credits
 

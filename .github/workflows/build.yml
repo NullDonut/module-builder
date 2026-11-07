@@ -7,11 +7,20 @@ on:
         type: boolean
         required: false
         default: true
+      draft:
+        type: boolean
+        required: false
+        default: false
 
   workflow_dispatch:
     inputs:
       from_ci:
         description: "Only release when a new patches version is available"
+        type: boolean
+        required: false
+        default: false
+      draft:
+        description: "Create a draft release instead of publishing"
         type: boolean
         required: false
         default: false
@@ -22,16 +31,19 @@ jobs:
     concurrency:
       group: build-modules
       cancel-in-progress: false
-    permissions: write-all
+    # Releases and the update-branch push only need repository contents.
+    permissions:
+      contents: write
+    timeout-minutes: 90
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: "zulu"
           java-version: "25"
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           submodules: true
@@ -91,6 +103,18 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           NEXT_VER_CODE: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
 
+      - name: Write build summary
+        if: always()
+        run: |
+          {
+            echo "## Build summary"
+            if [ -f build.md ]; then
+              cat build.md
+            else
+              echo "_No build.md was produced._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Get output
         id: get_output
         if: ${{ steps.release.outputs.should_release == 'true' }}
@@ -107,13 +131,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
           BODY: ${{ steps.get_output.outputs.BUILD_LOG }}
+          DRAFT: ${{ inputs.draft }}
         run: |
           ls -lh ./build/*
+          TITLE="Release ${TAG}"
+          DRAFT_ARGS=()
+          if [ "$DRAFT" = "true" ]; then
+            DRAFT_ARGS=(--draft)
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "Release" --notes "$BODY"
+            gh release edit "$TAG" --title "$TITLE" --notes "$BODY"
             gh release upload "$TAG" ./build/* --clobber
           else
-            gh release create "$TAG" ./build/* --title "Release" --notes "$BODY"
+            gh release create "$TAG" ./build/* --title "$TITLE" --notes "$BODY" "${DRAFT_ARGS[@]}"
           fi
 
       - name: Update modules changelog and update json
@@ -124,8 +154,10 @@ jobs:
         run: |
           git checkout -f update || git switch --discard-changes --orphan update
           cp -f build.tmp build.md
+          mkdir -p changelogs
+          cp -f build.tmp "changelogs/${NEXT_VER_CODE}.md"
 
-          CHANGELOG="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/update/build.md"
+          CHANGELOG="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/update/changelogs/${NEXT_VER_CODE}.md"
           cd build || { echo "build folder not found"; exit 1; }
           for OUTPUT in *module*.zip; do
             [ "$OUTPUT" = "*module*.zip" ] && continue
@@ -151,11 +183,13 @@ jobs:
 
       - name: Commit module json changes
         if: ${{ steps.release.outputs.should_release == 'true' }}
+        env:
+          NEXT_VER_CODE: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add -f build.md *-update.json
+          git add -f build.md "changelogs/${NEXT_VER_CODE}.md" *-update.json
 
           if ! git diff --cached --quiet; then
             git commit -s -m "Bump version ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}"
@@ -170,6 +204,8 @@ jobs:
           # TG_CHAT must be a numeric chat ID or @channelusername. The
           # TG_BOTNAME fallback keeps older repository variable names working.
           TG_CHAT: ${{ vars.TG_CHAT_ID || vars.TG_BOTNAME }}
+          # Optional forum topic/thread ID for group chats.
+          TG_THREAD_ID: ${{ vars.TG_THREAD_ID }}
         if: ${{ steps.release.outputs.should_release == 'true' && env.TG_TOKEN != '' && env.TG_CHAT != '' }}
         run: |
           cd build || { echo "build folder not found"; exit 1; }
@@ -210,24 +246,36 @@ jobs:
           echo "Sending Telegram message (${#MSG} characters)"
 
           POST="https://api.telegram.org/bot${TG_TOKEN}/sendMessage"
+          THREAD_ARGS=()
+          if [ -n "${TG_THREAD_ID-}" ]; then
+            THREAD_ARGS=(--data-urlencode "message_thread_id=${TG_THREAD_ID}")
+          fi
           # sendMessage rejects bodies over 4096 characters, so split on line
           # boundaries and fail the step if Telegram rejects any chunk.
           MAX=4000
           send_chunk() {
-            local text=$1 resp
-            if ! resp=$(curl -sS --fail-with-body -X POST \
-              --data-urlencode "parse_mode=Markdown" \
-              --data-urlencode "disable_web_page_preview=true" \
-              --data-urlencode "text=${text}" \
-              --data-urlencode "chat_id=${TG_CHAT}" \
-              "$POST"); then
-              echo "Telegram request failed: ${resp}" >&2
-              return 1
-            fi
-            if [ "$(jq -r '.ok // false' <<<"$resp")" != "true" ]; then
-              echo "Telegram API rejected the message: ${resp}" >&2
-              return 1
-            fi
+            local text=$1 resp attempt delay=2
+            for attempt in 1 2 3 4 5; do
+              if resp=$(curl -sS --fail-with-body --max-time 30 -X POST \
+                --data-urlencode "parse_mode=Markdown" \
+                --data-urlencode "disable_web_page_preview=true" \
+                --data-urlencode "text=${text}" \
+                --data-urlencode "chat_id=${TG_CHAT}" \
+                "${THREAD_ARGS[@]}" \
+                "$POST"); then
+                if [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ]; then
+                  return 0
+                fi
+                echo "Telegram API rejected the message (attempt ${attempt}/5): ${resp}" >&2
+              else
+                echo "Telegram request failed (attempt ${attempt}/5): ${resp}" >&2
+              fi
+              if [ "$attempt" -lt 5 ]; then
+                sleep "$delay"
+                delay=$((delay * 2))
+              fi
+            done
+            return 1
           }
 
           remaining=$MSG

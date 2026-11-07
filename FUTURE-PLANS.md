@@ -13,7 +13,9 @@ patch projects, the device/root setup, or the user's network. They should not
 trigger a rewrite of the builder.
 
 > Status (2026-11-07): the highest-impact release bugs are fixed. Runtime
-> reports were triaged as external (see below). Remaining work is unchanged.
+> reports were triaged as external (see below). CI now keeps per-release
+> changelogs, uses least-privilege permissions, pinned actions and timeouts.
+> Remaining work is unchanged.
 
 ---
 
@@ -69,14 +71,17 @@ These are defects found while auditing the builder and CI workflows.
       the next tag from the numeric maximum of all release tags instead of the
       first row of `gh release list`.
 
-- [ ] **Old module versions show the wrong changelog.**
-      `update/build.md` is overwritten every release and every `update.json`
-      points to it, so a user on an older version sees the newest notes.
+- [x] **Old module versions show the wrong changelog.**
+      Each release now writes `changelogs/<versionCode>.md` on the `update`
+      branch, and `update.json.changelog` points at that immutable file instead
+      of the moving `build.md`.
 
 - [ ] **Security and hygiene.**
       `permissions: write-all` in the workflows, actions pinned only by tag,
       committed `ks.keystore` / `ks-p12.keystore` with the default password
-      `123456789`, and `eval` in `lib/apk.sh`.
+      `123456789`, and `eval` in `lib/apk.sh`. (Workflow permissions are now
+      least-privilege, actions are pinned by SHA and Dependabot is enabled;
+      keystore handling and `eval` remain.)
 
 ---
 
@@ -88,9 +93,8 @@ Highest value: a release should never be wrong, partial, or silently fail.
       failed apps in the release notes. (Fail-fast is implemented;
       `allow-partial` is not.)
 - [x] Add a `concurrency` group (`cancel-in-progress: false`) and
-      `timeout-minutes` to the workflows. (Concurrency is implemented;
-      `timeout-minutes` is not.)
-- [ ] Reduce workflow permissions to `contents: write` (plus only what each
+      `timeout-minutes` to the workflows. (Both are implemented.)
+- [x] Reduce workflow permissions to `contents: write` (plus only what each
       job actually needs).
 - [x] Derive the next tag from the numeric maximum of
       `gh release list --json tagName` and validate it before use.
@@ -98,12 +102,13 @@ Highest value: a release should never be wrong, partial, or silently fail.
   - [x] keep messages under 4096 characters or split them
   - [ ] use `parse_mode=HTML` with escaping (legacy Markdown breaks on `_`,
         `*`, `[` in app names)
-  - [ ] retry with exponential backoff
+  - [x] retry with exponential backoff
   - [x] check for `"ok": true` and use `curl --fail-with-body`
-  - [ ] optionally support a thread/topic ID for groups
+  - [x] optionally support a thread/topic ID for groups
 - [ ] Upload `build.md`, job logs, and failed artifacts on failure; write a
-      `$GITHUB_STEP_SUMMARY`.
-- [ ] Use a meaningful release title (`Release <tag>`) and support a `draft`
+      `$GITHUB_STEP_SUMMARY`. (The step summary is implemented; artifacts and
+      job logs are not.)
+- [x] Use a meaningful release title (`Release <tag>`) and support a `draft`
       input for testing.
 - [x] Include the patches changelog link in release bodies and Telegram
       messages. (Implemented: `Patches changelog:` line in `build.md`.)
@@ -118,8 +123,8 @@ Highest value: a release should never be wrong, partial, or silently fail.
 - [ ] Publish `SHA256SUMS` and sign it (cosign or minisign). Optionally include
       digests in `update.json`.
 - [ ] Add `tools.lock` with checksums for `bin/` binaries and the JDK.
-- [ ] Pin GitHub Actions by commit SHA and add Dependabot/Renovate.
-- [ ] Keep per-release changelogs (`changelogs/<tag>.md`) and point
+- [x] Pin GitHub Actions by commit SHA and add Dependabot/Renovate.
+- [x] Keep per-release changelogs (`changelogs/<tag>.md`) and point
       `update.json.changelog` at the immutable release URL instead of the
       moving `build.md`.
 - [ ] Give the builder its own semver tags, changelog, support matrix
