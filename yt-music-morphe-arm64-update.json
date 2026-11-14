@@ -1,6 +1,6 @@
 {
-  "version": "9.30.53 (patches 2.3.0-dev.3)",
-  "versionCode": 31,
-  "zipUrl": "https://github.com/NullDonut/module-builder/releases/download/31/yt-music-morphe-dev-module-v9.30.53-arm64-v8a.zip",
-  "changelog": "https://raw.githubusercontent.com/NullDonut/module-builder/update/changelogs/31.md"
+  "version": "9.30.53 (patches 2.3.0-dev.5)",
+  "versionCode": 32,
+  "zipUrl": "https://github.com/NullDonut/module-builder/releases/download/32/yt-music-morphe-dev-module-v9.30.53-arm64-v8a.zip",
+  "changelog": "https://raw.githubusercontent.com/NullDonut/module-builder/update/changelogs/32.md"
 }
