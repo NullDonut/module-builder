@@ -1,6 +1,6 @@
 {
-  "version": "21.30.216 (patches 2.3.0-dev.7)",
-  "versionCode": 33,
-  "zipUrl": "https://github.com/NullDonut/module-builder/releases/download/33/youtube-morphe-dev-module-v21.30.216-all.zip",
-  "changelog": "https://raw.githubusercontent.com/NullDonut/module-builder/update/changelogs/33.md"
+  "version": "21.30.216 (patches 2.3.0-dev.8)",
+  "versionCode": 34,
+  "zipUrl": "https://github.com/NullDonut/module-builder/releases/download/34/youtube-morphe-dev-module-v21.30.216-all.zip",
+  "changelog": "https://raw.githubusercontent.com/NullDonut/module-builder/update/changelogs/34.md"
 }
